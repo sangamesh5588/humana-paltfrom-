@@ -1,0 +1,67 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  lint-test-build:
+    name: Lint, Test & Build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v3
+        with:
+          version: 10.33.2
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install --no-frozen-lockfile
+
+      - name: Approve build scripts
+        run: pnpm approve-builds --all
+
+      - name: Generate Prisma Client
+        run: pnpm run prisma:generate
+
+      - name: Run lint checks
+        run: pnpm run lint --if-present
+
+      - name: Build all workspaces
+        run: pnpm run build --if-present
+
+      - name: Run API tests
+        run: pnpm --filter @human-platform/api test --if-present
+
+  docker-verify:
+    name: Docker Build Verification
+    needs: lint-test-build
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./services/api/Dockerfile
+          push: false
+          tags: human-platform-api:latest
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

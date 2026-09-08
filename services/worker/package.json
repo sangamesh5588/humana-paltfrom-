@@ -1,0 +1,16 @@
+{
+  "name": "@human-platform/worker",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rimraf dist",
+    "dev": "tsc -w"
+  },
+  "devDependencies": {
+    "typescript": "^5.1.3",
+    "rimraf": "^5.0.0"
+  }
+}

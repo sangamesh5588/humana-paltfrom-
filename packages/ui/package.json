@@ -1,0 +1,26 @@
+{
+  "name": "@human-platform/ui",
+  "version": "1.0.0",
+  "private": true,
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc && node -e \"const fs = require('fs'); const path = require('path'); const src = './src'; const dist = './dist'; if (!fs.existsSync(dist)) fs.mkdirSync(dist, { recursive: true }); fs.readdirSync(src).filter(f => f.endsWith('.css')).forEach(f => fs.copyFileSync(path.join(src, f), path.join(dist, f)))\"",
+    "clean": "rimraf dist"
+  },
+  "dependencies": {
+    "@human-platform/theme": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "@types/react": "^18.2.0",
+    "@types/react-dom": "^18.2.0",
+    "typescript": "^5.1.3",
+    "rimraf": "^5.0.0"
+  }
+}

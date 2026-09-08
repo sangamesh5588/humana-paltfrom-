@@ -1,0 +1,60 @@
+.hp-card {
+  border-radius: var(--radius-md);
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+  color: var(--text-main);
+  transition: var(--transition-smooth);
+}
+
+/* Variants */
+.hp-card--default {
+  background-color: var(--card-bg);
+  border: 1px solid var(--border-color);
+  box-shadow: var(--shadow-premium);
+}
+
+.hp-card--default:hover {
+  background-color: var(--card-bg-hover);
+  border-color: rgba(255, 255, 255, 0.12);
+  box-shadow: var(--shadow-premium), var(--shadow-glow);
+}
+
+.hp-card--glass {
+  background: rgba(15, 22, 36, 0.45);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-premium);
+}
+
+.hp-card--glass:hover {
+  background: rgba(22, 32, 53, 0.6);
+  border-color: rgba(255, 255, 255, 0.15);
+  box-shadow: var(--shadow-premium), var(--shadow-glow);
+}
+
+.hp-card--bordered {
+  background-color: transparent;
+  border: 2px dashed var(--border-color);
+}
+
+.hp-card--bordered:hover {
+  border-color: var(--primary-color);
+}
+
+/* Paddings */
+.hp-card--pad-none {
+  padding: 0;
+}
+
+.hp-card--pad-sm {
+  padding: 12px;
+}
+
+.hp-card--pad-md {
+  padding: 24px;
+}
+
+.hp-card--pad-lg {
+  padding: 36px;
+}

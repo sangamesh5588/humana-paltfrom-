@@ -1,0 +1,54 @@
+.hp-input-container {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-sans);
+}
+
+.hp-input-label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-muted);
+}
+
+.hp-input-field {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  background-color: rgba(15, 22, 36, 0.4);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-md);
+  color: var(--text-main);
+  font-family: var(--font-sans);
+  font-size: 14px;
+  outline: none;
+  transition: var(--transition-smooth);
+}
+
+.hp-input-field:focus {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 10px rgba(99, 102, 241, 0.25);
+  background-color: rgba(15, 22, 36, 0.6);
+}
+
+.hp-input-field::placeholder {
+  color: var(--text-dark);
+}
+
+/* Error States */
+.hp-input-container--error .hp-input-field {
+  border-color: var(--error-color);
+  box-shadow: 0 0 8px rgba(244, 63, 94, 0.2);
+}
+
+.hp-input-container--error .hp-input-label {
+  color: var(--error-color);
+}
+
+.hp-input-error-msg {
+  font-size: 12px;
+  color: var(--error-color);
+  margin-top: 2px;
+}

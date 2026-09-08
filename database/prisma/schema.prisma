@@ -1,0 +1,602 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+// ─── MASTER DATA ENUMS ─────────────────────────────
+enum MasterStatus {
+  ACTIVE
+  INACTIVE
+  DELETED
+}
+
+enum DegreeLevel {
+  NONE
+  LKG
+  PRIMARY
+  MIDDLE
+  HIGH_SCHOOL
+  SENIOR_SECONDARY
+  DIPLOMA
+  BACHELORS
+  MASTERS
+  DOCTORATE
+  POST_DOCTORATE
+  CERTIFICATE
+  SELF_TAUGHT
+}
+
+enum JobLevel {
+  INTERN
+  JUNIOR
+  MID
+  SENIOR
+  LEAD
+  MANAGER
+  DIRECTOR
+  VP
+  C_LEVEL
+}
+
+// ─── CORE MODELS ────────────────────────────────────
+
+model User {
+  id            String         @id @default(uuid())
+  email         String         @unique
+  password      String?        // Optional for Google OAuth users
+  googleId      String?        @unique
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  profile       Profile?
+  expertProfile ExpertProfile?
+  refreshTokens RefreshToken[]
+  aiSessions    AiSession[]
+
+  @@map("users")
+}
+
+model RefreshToken {
+  id        String   @id @default(uuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+  revokedAt DateTime?
+
+  @@map("refresh_tokens")
+}
+
+model Profile {
+  id          String       @id @default(uuid())
+  userId      String       @unique
+  user        User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  firstName   String?
+  lastName    String?
+  headline    String?
+  location    String?
+  bio         String?
+  languages   String[]
+  avatar      String?
+  bannerColor String?
+  bannerTextColor String?
+
+  // Custom Profile Badge & Styling
+  badgeText      String?
+  badgeBgColor   String?
+  badgeTextColor String?
+  badgeIcon      String?
+
+  // Origin / Background (where they grew up)
+  originCountryId  String?
+  originCountry    Country?     @relation("OriginCountry", fields: [originCountryId], references: [id])
+  originState      String?
+  originDistrict   String?
+  originCity       String?
+  originVillage    String?
+
+  // Current Location (where they are now)
+  currentCountryId String?
+  currentCountry   Country?     @relation("CurrentCountry", fields: [currentCountryId], references: [id])
+  currentState     String?
+  currentCity      String?
+  currentStatus    String?   // "WORKING" | "STUDYING" | "LOOKING" | "OTHER"
+
+  // Interests & Aspirations
+  interests        String[]
+  skills           String[]
+  passions         String[]
+  aspirations      String?
+  challenges       String?
+
+  // Onboarding tracking
+  onboardingStep   Int      @default(0)
+  onboardingDone   Boolean  @default(false)
+
+  // Government Identity & Contact Information
+  phone            String?
+  phoneVerified    Boolean      @default(false)
+  dob              DateTime?
+  aadhaarMasked    String?
+  aadhaarVerified  Boolean      @default(false)
+  identityStatus   String       @default("UNVERIFIED") // "UNVERIFIED" | "PENDING" | "VERIFIED"
+  expertStatus     String       @default("UNVERIFIED") // "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"
+
+  education   Education[]
+  experience  Experience[]
+  availabilitySchedules AvailabilitySchedule[]
+  availabilitySetting   AvailabilitySetting?
+  sessions              Session[]
+  learnerBookings       Booking[]    @relation("LearnerBookings")
+  expertBookings        Booking[]    @relation("ExpertBookings")
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@map("profiles")
+}
+
+model ExpertProfile {
+  id             String   @id @default(uuid())
+  userId         String   @unique
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  status         String   @default("UNVERIFIED") // "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"
+  headline       String?
+  bio            String?
+  expertTags     String[] // Specialized Advisory Tags (e.g. "React Native", "Career Guidance")
+  badgeText      String?
+  badgeBgColor   String?
+  badgeTextColor String?
+  badgeIcon      String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("expert_profiles")
+}
+
+model Education {
+  id                 String      @id @default(uuid())
+  profileId          String
+  profile            Profile     @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  school             String
+  degree             String
+  degreeLevel        DegreeLevel @default(NONE)
+  fieldOfStudy       String
+  startDate          DateTime
+  endDate            DateTime?
+  current            Boolean     @default(false)
+  verified           Boolean     @default(false)
+  officialEmail      String?
+  emailVerified      Boolean     @default(false)
+  documentUrl        String?
+  verificationStatus String      @default("UNVERIFIED") // "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"
+
+  @@map("education")
+}
+
+model Experience {
+  id                 String    @id @default(uuid())
+  profileId          String
+  profile            Profile   @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  company            String
+  title              String
+  location           String?
+  startDate          DateTime
+  endDate            DateTime?
+  current            Boolean   @default(false)
+  description        String?
+  verified           Boolean   @default(false)
+  officialEmail      String?
+  emailVerified      Boolean   @default(false)
+  documentUrl        String?
+  verificationStatus String    @default("UNVERIFIED") // "UNVERIFIED" | "PENDING" | "VERIFIED" | "REJECTED"
+
+  @@map("experiences")
+}
+
+// ─── MASTER DATA MODELS ─────────────────────────────
+
+model Country {
+  id             String       @id @default(uuid())
+  name           String
+  iso2           String       @unique
+  iso3           String       @unique
+  phoneCode      String?
+  currency       String?
+  currencySymbol String?
+  timezone       String?
+  flagEmoji      String?
+  flagUrl        String?
+  continent      String?
+  status         MasterStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  companies       Company[]
+  universities    University[]
+  originProfiles  Profile[]    @relation("OriginCountry")
+  currentProfiles Profile[]    @relation("CurrentCountry")
+
+  @@index([name])
+  @@map("countries")
+}
+
+model Industry {
+  id        String       @id @default(uuid())
+  name      String
+  slug      String       @unique
+  icon      String?
+  status    MasterStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  companies Company[]
+
+  @@index([name])
+  @@map("industries")
+}
+
+model Company {
+  id          String       @id @default(uuid())
+  name        String
+  slug        String       @unique
+  website     String?
+  logo        String?
+  industryId  String?
+  industry    Industry?    @relation(fields: [industryId], references: [id])
+  countryId   String?
+  country     Country?     @relation(fields: [countryId], references: [id])
+  description String?
+  verified    Boolean      @default(false)
+  status      MasterStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  @@index([name])
+  @@index([slug])
+  @@index([countryId])
+  @@index([industryId])
+  @@map("companies")
+}
+
+model JobTitle {
+  id        String       @id @default(uuid())
+  title     String
+  slug      String       @unique
+  category  String?
+  level     JobLevel?
+  status    MasterStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([title])
+  @@index([slug])
+  @@map("job_titles")
+}
+
+model Skill {
+  id        String       @id @default(uuid())
+  name      String
+  slug      String       @unique
+  category  String?
+  status    MasterStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([name])
+  @@index([slug])
+  @@map("skills")
+}
+
+model Degree {
+  id        String       @id @default(uuid())
+  name      String
+  slug      String       @unique
+  level     DegreeLevel?
+  status    MasterStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([name])
+  @@map("degrees")
+}
+
+model University {
+  id        String       @id @default(uuid())
+  name      String
+  slug      String       @unique
+  countryId String?
+  country   Country?     @relation(fields: [countryId], references: [id])
+  website   String?
+  logo      String?
+  ranking   Int?
+  status    MasterStatus @default(ACTIVE)
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  @@index([name])
+  @@index([slug])
+  @@index([countryId])
+  @@map("universities")
+}
+
+// ─── CONSULTATION AVAILABILITY & HOURS ─────────────────────────────
+
+model AvailabilitySchedule {
+  id             String   @id @default(uuid())
+  profileId      String
+  profile        Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+  
+  dayOfWeek      Int      // 0 = Sunday, 1 = Monday, ..., 6 = Saturday
+  isAvailable    Boolean  @default(true)
+  startTime      String   @default("09:00") // 24-hr format HH:mm
+  endTime        String   @default("17:00") // 24-hr format HH:mm
+
+  hasSplitShift  Boolean  @default(false)
+  splitStartTime String?  @default("14:00")
+  splitEndTime   String?  @default("18:00")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@unique([profileId, dayOfWeek])
+  @@map("availability_schedules")
+}
+
+model AvailabilitySetting {
+  id             String   @id @default(uuid())
+  profileId      String   @unique
+  profile        Profile  @relation(fields: [profileId], references: [id], onDelete: Cascade)
+
+  bufferMinutes  Int      @default(15)
+  noticeHours    Int      @default(2)
+  timezone       String   @default("UTC")
+
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@map("availability_settings")
+}
+
+model SessionCategory {
+  id          String       @id @default(uuid())
+  name        String       @unique
+  slug        String       @unique
+  description String?
+  iconName    String?
+  status      MasterStatus @default(ACTIVE)
+  createdAt   DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  sessions    Session[]
+
+  @@map("session_categories")
+}
+
+enum SessionStatus {
+  DRAFT
+  SUBMITTED
+  APPROVED
+  REJECTED
+}
+
+model Session {
+  id                   String           @id @default(uuid())
+  expertId             String
+  expertProfile        Profile          @relation(fields: [expertId], references: [userId], onDelete: Cascade)
+  
+  // Category Foreign Key Relation
+  categoryId           String?
+  categoryRel          SessionCategory? @relation(fields: [categoryId], references: [id])
+  
+  // Basic Info
+  title                String
+  description          String
+  language             String           @default("English")
+  category             String
+  
+  // Media
+  videoUrl             String?
+  thumbnailUrl         String?
+  
+  // Structured Details
+  explanation          String?
+  topics               String[]
+  timeline             Json?
+  targetAudience       String[]
+  outcomes             String[]
+  bookingQuestions     Json?
+  rules                Json?
+  
+  // Pricing & Availability
+  durationMinutes      Int              @default(45)
+  priceAmount          Int              @default(999)
+  availabilitySchedule Json?
+  
+  // AI Metadata
+  aiConciseSummary     String?
+  aiKeywords           String[]
+  aiQualityScore       Int?
+  aiSuggestions        String[]
+  
+  status               SessionStatus    @default(DRAFT)
+  rejectionReason      String?
+  
+  bookings             Booking[]
+
+  createdAt            DateTime         @default(now())
+  updatedAt            DateTime         @updatedAt
+
+  @@map("sessions")
+}
+
+enum BookingStatus {
+  PENDING_PAYMENT
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+  RESCHEDULED
+}
+
+model Booking {
+  id              String        @id @default(uuid())
+  bookingNumber   String        @unique
+  sessionId       String
+  session         Session       @relation(fields: [sessionId], references: [id])
+  learnerId       String
+  learner         Profile       @relation("LearnerBookings", fields: [learnerId], references: [userId])
+  expertId        String
+  expert          Profile       @relation("ExpertBookings", fields: [expertId], references: [userId])
+  
+  slotDateTime    DateTime
+  durationMinutes Int
+  priceAmount     Int
+  meetingUrl      String?
+  status          BookingStatus @default(PENDING_PAYMENT)
+  
+  prepAnswers     BookingPrepAnswer[]
+  payments        Payment[]
+  cancellation    BookingCancellation?
+  notifications   BookingNotification[]
+  
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@map("bookings")
+}
+
+model BookingPrepAnswer {
+  id           String   @id @default(uuid())
+  bookingId    String
+  booking      Booking  @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  questionText String
+  answerText   String
+  
+  createdAt    DateTime @default(now())
+
+  @@map("booking_prep_answers")
+}
+
+enum PaymentStatus {
+  CREATED
+  SUCCESS
+  FAILED
+  REFUNDED
+}
+
+model Payment {
+  id                String        @id @default(uuid())
+  bookingId         String
+  booking           Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  razorpayOrderId   String        @unique
+  razorpayPaymentId String?       @unique
+  razorpaySignature String?
+  amount            Int
+  currency          String        @default("INR")
+  status            PaymentStatus @default(CREATED)
+  paymentMethod     String?
+  failureReason     String?
+  
+  createdAt         DateTime      @default(now())
+  updatedAt         DateTime      @updatedAt
+
+  @@map("payments")
+}
+
+enum CancelledRole {
+  LEARNER
+  EXPERT
+  ADMIN
+}
+
+enum RefundStatus {
+  NOT_APPLICABLE
+  PENDING
+  PROCESSED
+  FAILED
+}
+
+model BookingCancellation {
+  id                 String        @id @default(uuid())
+  bookingId          String        @unique
+  booking            Booking       @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  cancelledByUserId  String
+  cancelledRole      CancelledRole
+  cancellationReason String
+  
+  refundPercentage   Int           @default(100)
+  refundAmount       Int           @default(0)
+  refundStatus       RefundStatus  @default(PENDING)
+  refundRazorpayId   String?
+  
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  @@map("booking_cancellations")
+}
+
+enum NotificationChannel {
+  EMAIL
+  PUSH
+  SMS
+}
+
+model BookingNotification {
+  id              String              @id @default(uuid())
+  bookingId       String
+  booking         Booking             @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  recipientUserId String
+  
+  channel         NotificationChannel @default(EMAIL)
+  eventType       String
+  status          String
+  sentAt          DateTime            @default(now())
+
+  @@map("booking_notifications")
+}
+
+model AiSession {
+  id             String          @id @default(uuid())
+  userId         String
+  user           User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  goal           String?         // Inferred user goal
+  status         AiSessionStatus @default(COLLECTING_INFO)
+  structuredData Json?           // Extracted filters: { goal, stage, industry, region, birthDistrict, college, language }
+  messages       AiMessage[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@map("ai_sessions")
+}
+
+model AiMessage {
+  id         String     @id @default(uuid())
+  sessionId  String
+  session    AiSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  sender     SenderType // USER or SYSTEM
+  content    String
+  createdAt  DateTime   @default(now())
+
+  @@map("ai_messages")
+}
+
+enum AiSessionStatus {
+  COLLECTING_INFO
+  RECOMMENDING
+  COMPLETE
+}
+
+enum SenderType {
+  USER
+  SYSTEM
+}
+
+
+
+
